@@ -34,7 +34,7 @@ class ScriptArguments:
 class GeneratorConfig(llada.LLaDAGeneratorConfig):
     steps: int = 128
     max_new_tokens: int = 128
-    block_length: int = 32
+    block_length: int = 128
     temperature: float = 0.0
     remasking: str = "low_confidence"
 

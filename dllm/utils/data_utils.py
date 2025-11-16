@@ -74,6 +74,7 @@ def post_process_dataset(
         return dataset.filter(
             lambda row: len(row["input_ids"]) <= data_args.max_length,
             num_proc=data_args.num_proc,
+            desc=f"Filtering samples with length <= {data_args.max_length}",
         )
     elif data_args.truncation == "right":
         # do this only if dataset has "prompt_len"
@@ -81,10 +82,12 @@ def post_process_dataset(
             dataset = dataset.filter(
                 lambda row: row["prompt_len"] <= data_args.max_length,
                 num_proc=data_args.num_proc,
+                desc=f"Filtering samples with `prompt_len` <= {data_args.max_length}",
             )
         return dataset.map(
             lambda row: clip_row(row, data_args.max_length, truncation="right"),
             num_proc=data_args.num_proc,
+            desc=f"Right-truncating samples to max_length={data_args.max_length}",
         )
     else:
         raise NotImplementedError

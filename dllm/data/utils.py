@@ -7,7 +7,10 @@ from datasets import (
     load_from_disk,
 )
 
-from dllm.utils.utils import resolve_with_base_env, parse_spec
+from dllm.utils.utils import resolve_with_base_env, parse_spec, get_default_logger
+
+
+logger = get_default_logger(__name__)
 
 
 def load_sft_dataset(
@@ -34,6 +37,7 @@ def load_sft_dataset(
         )
 
         if load_preprocessed_data:
+            logger.info("Load preprocessed data from disk.")
             ds = load_from_disk(dataset_name_or_path)
         # Implement your customized dataset here
         elif _match(dataset_name_or_path, "tatsu-lab/alpaca"):
@@ -57,8 +61,6 @@ def load_sft_dataset(
             ds = load_dataset(dataset_name_or_path)
 
         # Normalize to DatasetDict and apply per-split limits
-        # shuffle dataset
-        # ds = ds.shuffle(seed=42)
         ds = _ensure_datasetdict(ds)
         ds = _truncate_dataset(ds, kvs)
         all_parts.append(ds)
@@ -179,6 +181,7 @@ def load_pt_dataset(
 
     # ---------- Load & Merge ----------
     if streaming:
+        logger.info("Loading dataset in streaming mode.")
         parts = [_load_one_streaming_spec(raw) for raw in specs]
         merged = parts[0]
         for p in parts[1:]:
@@ -189,6 +192,7 @@ def load_pt_dataset(
         )
         return merged
     else:
+        logger.info("Loading dataset in non-streaming mode.")
         parts = [_load_one_nonstreaming_spec(raw) for raw in specs]
         if len(parts) == 1:
             return _ensure_datasetdict(parts[0])

@@ -1,5 +1,7 @@
 import os
 import re
+import sys
+import logging
 from contextlib import contextmanager
 from dataclasses import dataclass, asdict
 from typing import TYPE_CHECKING
@@ -248,3 +250,25 @@ def parse_spec(spec: str):
     kv_dict.update(numeric_kvs)
 
     return name, kv_dict
+
+
+def get_default_logger(name):
+    logger = logging.getLogger(name)
+    if accelerate.PartialState().is_main_process:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.WARNING)
+    handler = logging.StreamHandler(sys.stdout)  # print to terminal
+    formatter = logging.Formatter(
+        fmt=(
+            "\x1b[38;5;110m[%(asctime)s "
+            "\x1b[38;5;174m%(levelname)s "
+            "\x1b[38;5;109m%(name)s"
+            "/%(lineno)d-%(processName)s\x1b[38;5;110m] "
+            "\x1b[0m%(message)s"
+        ),
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger

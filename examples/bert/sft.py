@@ -36,6 +36,9 @@ import accelerate
 import dllm
 
 
+logger = dllm.utils.get_default_logger(__name__)
+
+
 @dataclass
 class ModelArguments(dllm.utils.ModelArguments):
     model_name_or_path: str = "answerdotai/ModernBERT-large"
@@ -90,13 +93,17 @@ def train():
                 tokenizer=tokenizer,
                 mask_prompt_loss=data_args.mask_prompt_loss,
             )
-            dataset = dataset.map(map_fn, num_proc=data_args.num_proc)
+            dataset = dataset.map(
+                map_fn, 
+                num_proc=data_args.num_proc,
+                desc="Mapping dataset to SFT format",
+            )
         # truncate / filter long sequences if needed
         dataset = dllm.utils.post_process_dataset(dataset, data_args)
 
     # ----- Training --------------------------------------------------------------
     accelerate.PartialState().wait_for_everyone()
-    dllm.utils.print_main("start training...")
+    logger.info("Start training...")
     trainer = dllm.core.trainers.MDLMTrainer(
         model=model,
         tokenizer=tokenizer,

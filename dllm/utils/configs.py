@@ -3,7 +3,9 @@ from dataclasses import dataclass, field
 
 import transformers
 
-from dllm.utils.utils import resolve_with_base_env
+from dllm.utils.utils import resolve_with_base_env, get_default_logger
+
+logger = get_default_logger(__name__)
 
 
 @dataclass
@@ -65,3 +67,9 @@ class TrainingArguments(transformers.TrainingArguments):
     eval_steps: float = 0.25
     save_steps: float = 0.25
     save_only_model: bool = True
+
+    def __post_init__(self):
+        super().__post_init__()
+        if self.group_by_length:
+            logger.info("training_args.group_by_length=True: preprocessing "
+                        "may take some time after `trainer.train()` starts.")

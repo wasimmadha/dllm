@@ -9,6 +9,9 @@ import dllm
 from dllm.pipelines import editflow
 
 
+logger = dllm.utils.get_default_logger(__name__)
+
+
 @dataclass
 class ModelArguments(dllm.utils.ModelArguments):
     model_name_or_path: str = None  # overwrite this
@@ -141,14 +144,15 @@ def train(
                 insert_eos=data_args.insert_eos,
                 drop_tail=data_args.drop_tail),
             batched=True,
-            num_proc=None if data_args.streaming else data_args.num_proc,
             remove_columns=dataset["train"].column_names,
+            **({} if data_args.streaming else {"num_proc": data_args.num_proc}),
+            **({} if data_args.streaming else {"desc": "Mapping dataset to PT format"}),
         )
         if data_args.streaming: dataset = dataset.shuffle(seed=training_args.seed)
 
     # ----- Training --------------------------------------------------------------
     accelerate.PartialState().wait_for_everyone()
-    dllm.utils.print_main("start training...")
+    logger.info("Start training...")
     trainer = editflow.EditFlowTrainer(
         model=model,
         tokenizer=tokenizer,

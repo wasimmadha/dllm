@@ -34,6 +34,9 @@ import dllm
 from dllm.pipelines import dream
 
 
+logger = dllm.utils.get_default_logger(__name__)
+
+
 @dataclass
 class ModelArguments(dllm.utils.ModelArguments):
     model_name_or_path: str = "Dream-org/Dream-v0-Base-7B"
@@ -112,26 +115,25 @@ def train():
         dataset = dllm.data.load_pt_dataset(
             data_args.dataset_args, 
             streaming=data_args.streaming,
-            load_preprocessed_data=data_args.load_preprocessed_data,
         )
-        if not data_args.load_preprocessed_data:
-            dataset = dataset.map(
-                functools.partial(
-                    dllm.utils.tokenize_and_group, 
-                    tokenizer=tokenizer, 
-                    text_field=data_args.text_field, 
-                    seq_length=data_args.max_length, 
-                    insert_eos=data_args.insert_eos,
-                    drop_tail=data_args.drop_tail),
-                batched=True,
-                num_proc=None if data_args.streaming else data_args.num_proc,
-                remove_columns=dataset["train"].column_names,
-            )
+        dataset = dataset.map(
+            functools.partial(
+                dllm.utils.tokenize_and_group, 
+                tokenizer=tokenizer, 
+                text_field=data_args.text_field, 
+                seq_length=data_args.max_length, 
+                insert_eos=data_args.insert_eos,
+                drop_tail=data_args.drop_tail),
+            batched=True,
+            remove_columns=dataset["train"].column_names,
+            **({} if data_args.streaming else {"num_proc": data_args.num_proc}),
+            **({} if data_args.streaming else {"desc": "Mapping dataset to PT format"}),
+        )
         if data_args.streaming: dataset = dataset.shuffle(seed=training_args.seed)
 
     # ----- Training --------------------------------------------------------------
     accelerate.PartialState().wait_for_everyone()
-    dllm.utils.print_main("start training...")
+    logger.info("Start training...")
     trainer = dream.DreamTrainer(
         model=model,
         tokenizer=tokenizer,

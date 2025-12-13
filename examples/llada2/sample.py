@@ -1,5 +1,5 @@
 """
-python -u examples/a2d/bd3lm/sample.py --model_name_or_path "YOUR_MODEL_PATH"
+python -u examples/llada2/sample.py --model_name_or_path "YOUR_MODEL_PATH"
 """
 
 from dataclasses import dataclass
@@ -11,7 +11,7 @@ import dllm
 
 @dataclass
 class ScriptArguments:
-    model_name_or_path: str = "dllm-collection/Qwen3-0.6B-diffusion-bd3lm-v0.1"
+    model_name_or_path: str = "inclusionAI/LLaDA2.0-mini"
     seed: int = 42
     visualize: bool = True
 
@@ -22,13 +22,14 @@ class ScriptArguments:
 
 
 @dataclass
-class SamplerConfig(dllm.core.samplers.BD3LMSamplerConfig):
-    steps: int = 128
+class SamplerConfig(dllm.pipelines.llada2.LLaDA2SamplerConfig):
+    steps_per_block: int = 32
     max_new_tokens: int = 128
     block_size: int = 32
     temperature: float = 0.0
-    remasking: str = "low_confidence"
-    right_shift_logits: bool = False
+    top_p: float | None = None
+    top_k: int | None = None
+    threshold: float = 0.95
 
 
 parser = transformers.HfArgumentParser((ScriptArguments, SamplerConfig))
@@ -38,17 +39,17 @@ transformers.set_seed(script_args.seed)
 # Load model & tokenizer
 model = dllm.utils.get_model(model_args=script_args).eval()
 tokenizer = dllm.utils.get_tokenizer(model_args=script_args)
-sampler = dllm.core.samplers.BD3LMSampler(model=model, tokenizer=tokenizer)
+sampler = dllm.pipelines.llada2.LLaDA2Sampler(model=model, tokenizer=tokenizer)
 terminal_visualizer = dllm.utils.TerminalVisualizer(tokenizer=tokenizer)
 
-# --- Example 1: Batch sampling ---
-print("\n" + "=" * 80)
-print("TEST: sample()".center(80))
-print("=" * 80)
-
+# Single prompt (BDLM expects equal-length prompts; a single prompt avoids mismatch)
 messages = [
-    [{"role": "user", "content": "Lily runs 12 km/h for 4 hours. How far in 8 hours?"}],
-    [{"role": "user", "content": "Please write an educational python function."}],
+    [
+        {
+            "role": "user",
+            "content": "Give a concise summary of diffusion-based text generation.",
+        }
+    ],
 ]
 
 inputs = tokenizer.apply_chat_template(
@@ -56,15 +57,17 @@ inputs = tokenizer.apply_chat_template(
     add_generation_prompt=True,
     tokenize=True,
 )
+
 outputs = sampler.sample(inputs, sampler_config, return_dict=True)
 sequences = dllm.utils.decode_trim(tokenizer, outputs.sequences.tolist(), inputs)
 
-for iter, s in enumerate(sequences):
-    print("\n" + "-" * 80)
-    print(f"[Case {iter}]")
-    print("-" * 80)
+print("\n" + "=" * 80)
+print("TEST: llada2_moe.block_diffusion_generate()".center(80))
+print("=" * 80)
+for i, s in enumerate(sequences):
+    print(f"\n[Case {i}]")
     print(s.strip() if s.strip() else "<empty>")
 print("\n" + "=" * 80 + "\n")
 
-if script_args.visualize:
+if script_args.visualize and outputs.histories is not None:
     terminal_visualizer.visualize(outputs.histories, rich=True)

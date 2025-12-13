@@ -9,19 +9,19 @@ accelerate launch \
     --model_args "pretrained=dllm-collection/ModernBERT-base-chat-v0.1,max_new_tokens=256,steps=256,block_size=32"
 """
 
-from types import SimpleNamespace
 from dataclasses import dataclass
+from types import SimpleNamespace
 
 import accelerate
 import torch
 import torch.nn.functional as F
 from datasets import Dataset
-from tqdm import tqdm
 from lm_eval.__main__ import cli_evaluate
 from lm_eval.api.instance import Instance
 from lm_eval.api.model import LM
 from lm_eval.api.registry import register_model
 from lm_eval.models.utils import get_dtype
+from tqdm import tqdm
 
 import dllm
 from dllm.core.samplers import MDLMSampler, MDLMSamplerConfig
@@ -149,6 +149,16 @@ class BERTEvalHarness(LM):
     def _forward_process(
         self, batch: torch.Tensor, prompt_index: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Apply forward diffusion process by masking a random subset of tokens.
+
+        Args:
+            batch: Token tensor [B, L].
+            prompt_index: Boolean mask indicating prompt positions.
+
+        Returns:
+            Tuple of (noised_batch, mask_indices).
+        """
         b, l = batch.shape
 
         target_len = (l - prompt_index.sum()).item()
@@ -326,6 +336,7 @@ class BERTEvalHarness(LM):
         sampler = MDLMSampler(model=self.model, tokenizer=self.tokenizer)
 
         for elem in tqdm(ds, desc="Generating..."):
+            # Remove the [CLS][SEP] token due to apply_chat_template(tokenize=True) in lm-eval's dataflow
             prompt = [elem["question"][1:-1].to(self.device)]
             stop_tokens = elem["until"]
             generated_ids = sampler.sample(

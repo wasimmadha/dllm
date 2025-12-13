@@ -3,20 +3,20 @@ python dllm/tools/preprocess_pt_dataset.py
 """
 
 import os
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from functools import partial
+from pprint import pprint
 
 import datasets
-import tyro
 import transformers
-from pprint import pprint
+import tyro
 
 import dllm
 
 
 @dataclass
 class ScriptArguments:
-    """Preprocess PT dataset"""
+    """Preprocess PT dataset."""
 
     model_name_or_path: str = "answerdotai/ModernBERT-large"
     dataset_args: str = "OpenCoder-LLM/opc-annealing-corpus[lang:python]"  # required

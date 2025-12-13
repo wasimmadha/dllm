@@ -1,18 +1,16 @@
-from typing import Optional, Text, List, Dict
 from datasets import (
-    load_dataset,
-    get_dataset_config_names,
-    concatenate_datasets,
-    DatasetDict,
     Dataset,
-    IterableDatasetDict,
+    DatasetDict,
+    concatenate_datasets,
+    get_dataset_config_names,
+    load_dataset,
 )
+
 from dllm.data.utils import (
-    _merge_datasetdicts,
-    _merge_iterabledatasetdicts,
     _ensure_datasetdict,
     _ensure_iterabledatasetdict,
-    _ensure_datasetdict,
+    _merge_datasetdicts,
+    _merge_iterabledatasetdicts,
 )
 
 
@@ -66,6 +64,19 @@ def load_dataset_opc_annealing(
     lang: str | None = None,
     streaming: bool = True,
 ) -> DatasetDict:
+    """
+    Load OpenCoder OPC annealing dataset(s).
+
+    Args:
+        dataset_name_or_path: Path or name of the dataset.
+        name: Specific config name to load, or None to load all configs.
+        lang: Language filter (e.g., "python"), or None for all languages.
+        streaming: If True, return IterableDatasetDict; if False, return DatasetDict.
+
+    Returns:
+        Dataset dictionary with train split.
+    """
+
     def _load_one_config(_name):
         ds = load_dataset(
             dataset_name_or_path, _name, split="train", streaming=streaming

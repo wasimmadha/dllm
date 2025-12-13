@@ -9,12 +9,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from dllm.core.samplers.base import (
-    SamplerOutput,
-    SamplerConfig,
-    BaseSampler,
-)
-from dllm.core.samplers.utils import get_num_transfer_tokens, add_gumbel_noise
+from dllm.core.samplers.base import BaseSampler, SamplerConfig, SamplerOutput
+from dllm.core.samplers.utils import add_gumbel_noise, get_num_transfer_tokens
 
 
 @dataclass
@@ -44,6 +40,20 @@ class MDLMSampler(BaseSampler):
         config: MDLMSamplerConfig | None = None,
         **kwargs,
     ) -> SamplerOutput | torch.Tensor:
+        """
+        Generate text using masked diffusion language modeling.
+
+        Iteratively unmasks tokens over multiple diffusion steps, starting from
+        fully masked sequences appended to the input prompts.
+
+        Args:
+            inputs: List of input prompts (token tensors or lists of token IDs).
+            config: Sampler configuration, or None to use defaults.
+            **kwargs: Override specific config parameters.
+
+        Returns:
+            SamplerOutput with generated sequences, or raw tensor if return_dict=False.
+        """
         if config is None:
             config = MDLMSamplerConfig()
 

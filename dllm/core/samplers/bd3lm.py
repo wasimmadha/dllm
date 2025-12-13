@@ -9,12 +9,8 @@ from dataclasses import dataclass
 import torch
 import torch.nn.functional as F
 
-from dllm.core.samplers.base import (
-    SamplerOutput,
-    SamplerConfig,
-    BaseSampler,
-)
-from dllm.core.samplers.utils import get_num_transfer_tokens, add_gumbel_noise
+from dllm.core.samplers.base import BaseSampler, SamplerConfig, SamplerOutput
+from dllm.core.samplers.utils import add_gumbel_noise, get_num_transfer_tokens
 
 
 def build_staircase_attention_mask(
@@ -146,6 +142,7 @@ class BD3LMSamplerConfig(SamplerConfig):
     )
     block_size: int = 32
     steps: int = 128
+    steps_per_block: int | None = None
     temperature: float = 0.0
     remasking: str = "low_confidence"
     stochastic_transfer: bool = False
@@ -164,12 +161,27 @@ class BD3LMSampler(BaseSampler):
         config: BD3LMSamplerConfig | None = None,
         **kwargs,
     ) -> SamplerOutput | torch.Tensor:
+        """
+        Generate text using block diffusion language modeling.
+
+        Generates text block-by-block with a staircase attention pattern, where each
+        block undergoes multiple diffusion steps before moving to the next block.
+
+        Args:
+            inputs: List of input prompts (token tensors or lists of token IDs).
+            config: Sampler configuration, or None to use defaults.
+            **kwargs: Override specific config parameters.
+
+        Returns:
+            SamplerOutput with generated sequences, or raw tensor if return_dict=False.
+        """
 
         if config is None:
             config = BD3LMSamplerConfig()
 
         # ---- pull args from config, allow kwargs to override ----
         steps = kwargs.get("steps", config.steps)
+        steps_per_block = kwargs.get("steps_per_block", config.steps_per_block)
         max_new_tokens = kwargs.get("max_new_tokens", config.max_new_tokens)
         max_length = kwargs.get("max_length", config.max_length)
         block_size = kwargs.get("block_size", config.block_size)
@@ -238,7 +250,8 @@ class BD3LMSampler(BaseSampler):
 
         # ---- block scheduling ----
         num_blocks = math.ceil(max_new_tokens / block_size)
-        steps_per_block = math.ceil(steps / num_blocks)
+        if steps_per_block is None:
+            steps_per_block = math.ceil(steps / num_blocks)
         histories = [x.clone()] if return_dict else None
 
         generated = 0  # number of generated tokens so far

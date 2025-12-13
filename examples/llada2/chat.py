@@ -1,10 +1,13 @@
 """
-Interactive chat / sampling script for A2D models.
+Interactive chat / sampling script for LLaDA2-MoE models.
 
 Examples
 --------
-# Raw multi-turn sampling (default)
-python -u examples/a2d/bd3lm/chat.py --model_name_or_path "YOUR_MODEL_PATH"
+# Chat mode (multi-turn, chat template)
+python -u examples/llada2/chat.py --model_name_or_path "YOUR_MODEL_PATH"
+
+# Raw single-turn sampling
+python -u examples/llada2/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat_template False
 """
 
 import sys
@@ -17,26 +20,26 @@ import dllm
 
 @dataclass
 class ScriptArguments:
-    model_name_or_path: str = "dllm-collection/Qwen3-0.6B-diffusion-bd3lm-v0.1"
+    model_name_or_path: str = "inclusionAI/LLaDA2.0-mini"
     seed: int = 42
     chat_template: bool = True
     visualize: bool = True
 
     def __post_init__(self):
-        # same base-path resolution logic as in sample.py
         self.model_name_or_path = dllm.utils.resolve_with_base_env(
             self.model_name_or_path, "BASE_MODELS_DIR"
         )
 
 
 @dataclass
-class SamplerConfig(dllm.core.samplers.BD3LMSamplerConfig):
-    steps: int = 128
+class SamplerConfig(dllm.pipelines.llada2.LLaDA2SamplerConfig):
+    steps_per_block: int = 32
     max_new_tokens: int = 128
     block_size: int = 32
     temperature: float = 0.0
-    remasking: str = "low_confidence"
-    right_shift_logits: bool = False
+    top_p: float | None = None
+    top_k: int | None = None
+    threshold: float = 0.95
 
 
 def main():
@@ -46,7 +49,7 @@ def main():
 
     model = dllm.utils.get_model(model_args=script_args).eval()
     tokenizer = dllm.utils.get_tokenizer(model_args=script_args)
-    sampler = dllm.core.samplers.BD3LMSampler(model=model, tokenizer=tokenizer)
+    sampler = dllm.pipelines.llada2.LLaDA2Sampler(model=model, tokenizer=tokenizer)
 
     if script_args.chat_template:
         dllm.utils.multi_turn_chat(

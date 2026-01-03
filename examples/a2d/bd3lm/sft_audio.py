@@ -104,7 +104,7 @@ def train():
     # ----- Dataset ----------------------------------------------------------------
     with accelerate.PartialState().local_main_process_first():
         dataset = load_tts_dataset_from_csv(
-            csv_path="/root/research/X-Codec-2.0/sample-train-clean-100.csv",
+            csv_path="/root/research/X-Codec-2.0/train-clean-100.csv",
             codes_base_dir="/root/research/X-Codec-2.0/codes_output/vq_codes",
         )
         if not data_args.load_preprocessed_data:

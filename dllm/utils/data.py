@@ -541,8 +541,9 @@ def load_tts_dataset_from_csv(
     df = pd.read_csv(csv_path, sep="\t")
     df = df.dropna(subset=["filename", "text", "duration"])
 
-    ## Remove audios which are more than 13 seconds which is 13 * 25 tokens in the audio
-    df = df[df["duration"] <= 13]
+    # Remove audios which are more than 13 seconds which is 13 * 25 tokens in the audio
+    # more than 1.5 seconds for more than one block
+    df = df[(df["duration"] <= 13) & (df["duration"] >= 1.5)]
     df = df.reset_index(drop=True)
 
     if verbose:

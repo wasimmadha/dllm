@@ -6,7 +6,7 @@ import tyro
 import dllm
 
 A2D_CONFIG_MAP = {
-    "gpt2": dllm.pipelines.a2d.A2DGPT2Config,
+    # "gpt2": dllm.pipelines.a2d.A2DGPT2Config,
     "llama": dllm.pipelines.a2d.A2DLlamaConfig,
     "qwen2": dllm.pipelines.a2d.A2DQwen2Config,
     "qwen3": dllm.pipelines.a2d.A2DQwen3Config,
